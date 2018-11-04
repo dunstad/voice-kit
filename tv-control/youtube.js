@@ -1,6 +1,6 @@
 // get tv power state first, only toggle if it's off
 let PanasonicViera = require('panasonic-viera-control/panasonicviera');
-let tv = new PanasonicViera('192.168.0.122');
+let tv = new PanasonicViera('192.168.0.22');
 tvIsOff = true;
 tv.getMute((mute)=>{
   tvIsOff = false;
@@ -36,7 +36,7 @@ function startVideo() {
   
       let dial = require('peer-dial');
       let client = new dial.Client;
-      client.getDialDevice('http://192.168.0.122:55000/nrc/ddd.xml', (device, err)=>{
+      client.getDialDevice('http://192.168.0.22:55000/nrc/ddd.xml', (device, err)=>{
         if (err) {
           console.error('error getting device');
           console.error(err);
