@@ -52,7 +52,7 @@ function startVideo() {
             }
           });
   
-          setTimeout(()=>{
+          // setTimeout(()=>{
             device.launchApp("YouTube",`v=${results[0].id}`, "text/plain", function (launchRes, err) {
               if(typeof launchRes != "undefined"){
                 console.log("YouTube Launched Successfully",launchRes);
@@ -61,7 +61,7 @@ function startVideo() {
                 console.log("Error on Launch YouTube App",launchRes);
               }
             });
-          }, 100);
+          // }, 100);
   
         }
       });
