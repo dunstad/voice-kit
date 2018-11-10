@@ -22,7 +22,7 @@ setTimeout(()=>{
 function startVideo() {
   
   let words = process.argv.slice(2).join(' ');
-  const YouTubeAPIKey = process.env.YOUTUBE;
+  const YouTubeAPIKey = require('./key');
   let search = require('youtube-search');
   
   let opts = {
