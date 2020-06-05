@@ -13,66 +13,60 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Run a recognizer using the Google Assistant Library with button support.
-
+"""Activates the Google Assistant with either a hotword or a button press, using the
+Google Assistant Library.
 The Google Assistant Library has direct access to the audio API, so this Python
-code doesn't need to record audio. Hot word detection "OK, Google" is supported.
-
-The Google Assistant Library can be installed with:
-    env/bin/pip install google-assistant-library==0.0.2
-
-It is available for Raspberry Pi 2/3 only; Pi Zero is not supported.
+code doesn't need to record audio.
+.. note:
+    Hotword detection (such as "Okay Google") is supported only with Raspberry Pi 2/3.
+    If you're using a Pi Zero, this code works but you must press the button to activate
+    the Google Assistant.
 """
 
 import logging
-import subprocess
+import platform
 import sys
 import threading
 
-import aiy.assistant.auth_helpers
-import aiy.assistant.device_helpers
-import aiy.audio
-import aiy.voicehat
-from google.assistant.library import Assistant
 from google.assistant.library.event import EventType
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="[%(asctime)s] %(levelname)s:%(name)s:%(message)s"
-)
+from aiy.assistant import auth_helpers
+from aiy.assistant.library import Assistant
+from aiy.board import Board, Led
+from aiy.voice import tts
 
 
-class MyAssistant(object):
+class MyAssistant:
     """An assistant that runs in the background.
-
     The Google Assistant Library event loop blocks the running thread entirely.
     To support the button trigger, we need to run the event loop in a separate
     thread. Otherwise, the on_button_pressed() method will never get a chance to
     be invoked.
     """
+
     def __init__(self):
         self._task = threading.Thread(target=self._run_task)
         self._can_start_conversation = False
         self._assistant = None
+        self._board = Board()
+        self._board.button.when_pressed = self._on_button_pressed
 
     def start(self):
-        """Starts the assistant.
-
-        Starts the assistant event loop and begin processing events.
+        """
+        Starts the assistant event loop and begins processing events.
         """
         self._task.start()
 
     def _run_task(self):
-        credentials = aiy.assistant.auth_helpers.get_assistant_credentials()
-        model_id, device_id = aiy.assistant.device_helpers.get_ids(credentials)
-        with Assistant(credentials, model_id) as assistant:
+        credentials = auth_helpers.get_assistant_credentials()
+        with Assistant(credentials) as assistant:
             self._assistant = assistant
             for event in assistant.start():
                 self._process_event(event)
 
     def say(self, text):
-        say_volume = 10
-        aiy.audio.say(text, volume=say_volume)
+        say_volume = 100
+        tts.say(text, volume=say_volume)
 
     def toggle_tv_power(self):
         self.say('Switching TV power.')
@@ -100,20 +94,18 @@ class MyAssistant(object):
         ip_address = subprocess.check_output("hostname -I | cut -d' ' -f1", shell=True)
         self.say('My IP address is %s' % ip_address.decode('utf-8'))
 
-
     def _process_event(self, event):
-        status_ui = aiy.voicehat.get_status_ui()
+        logging.info(event)
         if event.type == EventType.ON_START_FINISHED:
-            status_ui.status('ready')
+            self._board.led.status = Led.BEACON_DARK  # Ready.
             self._can_start_conversation = True
             # Start the voicehat button trigger.
-            aiy.voicehat.get_button().on_press(self._on_button_pressed)
-            if sys.stdout.isatty():
-                print('Say "OK, Google" then speak, or press Ctrl+C to quit...')
+            logging.info('Say "OK, Google" or press the button, then speak. '
+                         'Press Ctrl+C to quit...')
 
         elif event.type == EventType.ON_CONVERSATION_TURN_STARTED:
             self._can_start_conversation = False
-            status_ui.status('listening')
+            self._board.led.state = Led.ON  # Listening.
 
         elif event.type == EventType.ON_RECOGNIZING_SPEECH_FINISHED and event.args:
             print('You said:', event.args['text'])
@@ -137,13 +129,13 @@ class MyAssistant(object):
                 self._assistant.stop_conversation()
                 self.set_volume(text.split(' ')[-1])
 
-
-
         elif event.type == EventType.ON_END_OF_UTTERANCE:
-            status_ui.status('thinking')
+            self._board.led.state = Led.PULSE_QUICK  # Thinking.
 
-        elif event.type == EventType.ON_CONVERSATION_TURN_FINISHED:
-            status_ui.status('ready')
+        elif (event.type == EventType.ON_CONVERSATION_TURN_FINISHED
+              or event.type == EventType.ON_CONVERSATION_TURN_TIMEOUT
+              or event.type == EventType.ON_NO_RESPONSE):
+            self._board.led.state = Led.BEACON_DARK  # Ready.
             self._can_start_conversation = True
 
         elif event.type == EventType.ON_ASSISTANT_ERROR and event.args and event.args['is_fatal']:
@@ -159,10 +151,9 @@ class MyAssistant(object):
 
 
 def main():
+    logging.basicConfig(level=logging.INFO)
     MyAssistant().start()
 
 
 if __name__ == '__main__':
     main()
-
-
