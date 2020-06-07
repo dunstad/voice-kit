@@ -27,6 +27,7 @@ import logging
 import platform
 import sys
 import threading
+import subprocess
 
 from google.assistant.library.event import EventType
 
@@ -70,15 +71,15 @@ class MyAssistant:
 
     def toggle_tv_power(self):
         self.say('Switching TV power.')
-        subprocess.call('node /home/pi/voice-recognizer-raspi/src/tv-control/toggle.js', shell=True)
+        subprocess.call('node /home/pi/git/AIY-projects-python/src/examples/voice/tv-control/toggle.js', shell=True)
 
     def play_youtube(self, query):
         self.say('Playing {0}.'.format(query))
-        subprocess.call('node /home/pi/voice-recognizer-raspi/src/tv-control/youtube.js {0}'.format(query.replace("'", "")), shell=True)
+        subprocess.call('node /home/pi//git/AIY-projects-python/src/examples/voice/tv-control/youtube.js {0}'.format(query.replace("'", "")), shell=True)
 
     def set_volume(self, volume):
         self.say('Setting volume to {0}.'.format(volume))
-        subprocess.call('node /home/pi/voice-recognizer-raspi/src/tv-control/volume.js {0}'.format(volume), shell=True)
+        subprocess.call('node /home/pi/git/AIY-projects-python/src/examples/voice/tv-control/volume.js {0}'.format(volume), shell=True)
 
     def power_off_pi(self):
         self.say('Good bye!')
@@ -151,6 +152,8 @@ class MyAssistant:
 
 
 def main():
+    import time
+    time.sleep(10)
     logging.basicConfig(level=logging.INFO)
     MyAssistant().start()
 
